@@ -1,5 +1,5 @@
         <?php
-        include("conexion.php");
+        include("../conexion.php");
         $con = conectar();
 
         // Consulta con JOIN para obtener datos de ambas tablas
@@ -85,7 +85,7 @@
                                             Pagar
                                         </button>
                                     </td>
-                                      <!-- Modal -->
+										<!-- Modal Registro Pago -->
                                     <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -101,6 +101,7 @@
                                                             <input type="number" class="form-control" name="monto" required step="0.01">
                                                         </div>
                                                     </div>
+													
                                                     <div class="modal-footer">
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                                                         <button type="submit" class="btn btn-primary">Registrar Pago</button>

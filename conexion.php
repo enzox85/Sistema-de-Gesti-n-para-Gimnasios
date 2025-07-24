@@ -1,16 +1,17 @@
 <?php
-function conectar() {
-    $host = "localhost";
-    $user = "root";
-    $password = "";
-    $database = "spartadb";
- 
-    $con = mysqli_connect($host, $user, $password, $database);
+function conectar()
+{
+	$host = "localhost";
+	$user = "root";
+	$password = "";
+	$database = "spartadb";
 
-    if (!$con) {
-        die("Error de conexión: " . mysqli_connect_error());
-    }
+	$con = mysqli_connect($host, $user, $password, $database);
 
-    return $con;
+	if (!$con) {
+		die("Error de conexión: " . mysqli_connect_error());
+	}
+
+	return $con;
 }
 ?>

@@ -1,30 +1,45 @@
+<!-- Font Awesome para los iconos -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- Barra Lateral -->
-<div class="sidebar bg-dark text-white vh-100 p-3" style="width: 250px;">
-    <h4 class="text-center mb-4">
-    <a href="/spartanproject/Index.php" class="nav-link text-white ">
-        <i class="bi bi-list-check"></i> Menú</h4>
-     </a>
-    <ul class="nav flex-column">
+<!-- Contenido interno del Sidebar -->
+<div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; min-height: 100vh;">
+    <a href="/spartanproject/Index.php" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <i class="fas fa-dumbbell fa-2x me-3"></i>
+        <span class="fs-4">SpartanProject</span>
+    </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <a href="/spartanproject/Socios/socios.php" class="nav-link text-white ">
-                <i class="bi bi-people-fill me-2"></i> Socios
+            <a href="/spartanproject/Socios/socios.php" class="nav-link text-white">
+                <i class="fas fa-users fa-fw me-2"></i>Socios
             </a>
         </li>
-        <li class="nav-item">
+        <li>
             <a href="/spartanproject/cuotas/cuotas.php" class="nav-link text-white">
-                <i class="bi bi-cash-coin me-2"></i> Cuotas
+                <i class="fas fa-dollar-sign fa-fw me-2"></i>Cuotas
             </a>
         </li>
-        <li class="nav-item">
+        <li>
             <a href="/spartanproject/Ejercicios/ejerciciosmain.php" class="nav-link text-white">
-                <i class="bi bi-dumbbell me-2"></i> Ejercicios
+                <i class="fas fa-running fa-fw me-2"></i>Ejercicios
             </a>
         </li>
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white">
-                <i class="bi bi-heart-pulse me-2"></i> Planes de Entrenamiento
+        <li>
+            <a href="/spartanproject/rutinas/rutinasmain.php" class="nav-link text-white">
+                <i class="fas fa-clipboard-list fa-fw me-2"></i>Rutinas
+            </a>
+        </li>
+        <li>
+            <a href="/spartanproject/planes/planes.php" class="nav-link text-white">
+                <i class="fas fa-calendar-alt fa-fw me-2"></i>Planes
             </a>
         </li>
     </ul>
+    <hr>
+    <div>
+        <a href="#" class="d-flex align-items-center text-white text-decoration-none">
+            <i class="fas fa-sign-out-alt fa-fw me-2"></i>
+            <strong>Cerrar Sesión</strong>
+        </a>
+    </div>
 </div>

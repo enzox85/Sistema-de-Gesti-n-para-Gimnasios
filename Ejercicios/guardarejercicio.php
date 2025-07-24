@@ -1,58 +1,108 @@
 <?php
-include("../conexion.php"); // ¡IMPORTANTE!
-$con = conectar();
+// 1. CONFIGURACIÓN INICIAL
+require_once '../conexion.php';
+$conexion = conectar();
 
+// La respuesta será siempre en formato JSON para que el frontend la entienda.
+header('Content-Type: application/json');
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (empty($_POST['nomb_ejer']) || empty($_POST['descripcion']) || empty($_POST['grupo_mus']) || empty($_POST['nivel_dificultad'])) {
-        die("Error: Todos los campos son obligatorios.");
-    }
+// 2. PREPARAR DIRECTORIO DE SUBIDA
+// Define la carpeta donde se guardarán las imágenes.
+// La ruta es relativa al script actual (sube un nivel desde /Ejercicios a la raíz).
+$upload_dir = '../uploads/ejercicios/';
 
-    $nomb_ejer = $_POST['nomb_ejer'];
-    $descripcion = $_POST['descripcion'];
-    $grupo_mus = $_POST['grupo_mus'];
-    $nivel_dificultad = $_POST['nivel_dificultad'];
-    $video_ejemplo = $_POST['video_ejemplo']; // este campo puede ser opcional
+// Crea el directorio si no existe. El @ suprime warnings si el directorio ya existe.
+if (!is_dir($upload_dir)) {
+    @mkdir($upload_dir, 0777, true);
+}
 
-    // Manejo de imagen
-    $carpeta_destino = "uploads/";
-    $ruta_absoluta = __DIR__ . '/' . $carpeta_destino;
+// 3. INICIAR TRANSACCIÓN
+// Desactivamos el autocommit para tener control total sobre la operación.
+mysqli_autocommit($conexion, false);
 
-    if (isset($_FILES["imagen_ejemplo"]) && $_FILES["imagen_ejemplo"]["error"] == 0) {
-        if (!file_exists($ruta_absoluta)) {
-            mkdir($ruta_absoluta, 0755, true);
-        }
-
-        $nombre_archivo = uniqid() . '_' . basename($_FILES["imagen_ejemplo"]["name"]);
-        $ruta_destino = $ruta_absoluta . $nombre_archivo;
-        $foto_relativa = $carpeta_destino . $nombre_archivo;
-
-        $check = getimagesize($_FILES["imagen_ejemplo"]["tmp_name"]);
-        if ($check !== false) {
-            if (!move_uploaded_file($_FILES["imagen_ejemplo"]["tmp_name"], $ruta_destino)) {
-                die("Error: No se pudo subir la imagen.");
-            }
-            $ruta_imagen = $foto_relativa;
-        } else {
-            die("Error: El archivo no es una imagen válida.");
-        }
-    }
-
-    // Insertar en base de datos
-    $sql = "INSERT INTO ejercicios (nomb_ejer, descripcion, grupo_mus, nivel_dificultad, imagen_ejemplo, video_ejemplo) VALUES (?, ?, ?, ?, ?, ?)";
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param("ssssss", $nomb_ejer, $descripcion, $grupo_mus, $nivel_dificultad, $ruta_imagen, $video_ejemplo);
-
-    if ($stmt->execute()) {
-        $mensaje = "Ejercicio guardado correctamente.";
-    } else {
-        $mensaje = "Error al guardar en la base de datos: " . $stmt->error;
+try {
+    // 4. INSERTAR DATOS PRINCIPALES DEL EJERCICIO
+    // Preparamos la inserción en la tabla 'ejercicios'.
+    $stmt_ejercicio = mysqli_prepare($conexion, "INSERT INTO ejercicios (nomb_ejer, grupo_mus, nivel_dificultad, descripcion) VALUES (?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt_ejercicio, "ssss", $_POST['nomb_ejer'], $_POST['grupo_mus'], $_POST['nivel_dificultad'], $_POST['descripcion']);
+    
+    if (!mysqli_stmt_execute($stmt_ejercicio)) {
+        throw new Exception("Error al guardar el ejercicio principal: " . mysqli_stmt_error($stmt_ejercicio));
     }
     
-    $stmt->close();
-    $con->close();
+    // Obtenemos el ID del ejercicio que acabamos de crear. Lo necesitaremos para los medios.
+    $idejercicio_creado = mysqli_insert_id($conexion);
+    mysqli_stmt_close($stmt_ejercicio);
 
-    header("Location: /spartanproject/Ejercicios/ejerciciosmain.php?mensaje=" . urlencode($mensaje));
-    exit();
+    // 5. PROCESAR Y GUARDAR LOS ARCHIVOS MULTIMEDIA
+    $orden = 1;
+    $media_types = $_POST['media_types'] ?? [];
+    $image_counter = 0; // Contador para el array de archivos $_FILES
+    $link_counter = 0;  // Contador para el array de links $_POST
+
+    foreach ($media_types as $type) {
+        $url_media = '';
+        
+        if ($type === 'IMAGEN') {
+            // Verificamos que el archivo se haya subido correctamente
+            if (isset($_FILES['media_files']['name'][$image_counter]) && $_FILES['media_files']['error'][$image_counter] === UPLOAD_ERR_OK) {
+                $tmp_name = $_FILES['media_files']['tmp_name'][$image_counter];
+                $original_name = basename($_FILES['media_files']['name'][$image_counter]);
+                $file_extension = pathinfo($original_name, PATHINFO_EXTENSION);
+                
+                // Creamos un nombre de archivo único para evitar sobreescrituras
+                $unique_filename = 'ejer_' . $idejercicio_creado . '_' . uniqid() . '.' . $file_extension;
+                $target_path = $upload_dir . $unique_filename;
+
+                if (!move_uploaded_file($tmp_name, $target_path)) {
+                    throw new Exception('Error al mover el archivo de imagen subido.');
+                }
+                // Guardamos la ruta relativa desde la raíz del proyecto para usarla en <img src="...">
+                $url_media = '/spartanproject/uploads/ejercicios/' . $unique_filename;
+                $image_counter++;
+            } else {
+                 throw new Exception('Error en la subida de la imagen. Código: ' . ($_FILES['media_files']['error'][$image_counter] ?? 'N/A'));
+            }
+
+        } elseif ($type === 'VIDEO_LINK') {
+            // Verificamos que el link sea una URL válida
+            if (isset($_POST['media_links'][$link_counter]) && filter_var($_POST['media_links'][$link_counter], FILTER_VALIDATE_URL)) {
+                $url_media = $_POST['media_links'][$link_counter];
+                $link_counter++;
+            } else {
+                throw new Exception('El link de video proporcionado no es una URL válida.');
+            }
+        }
+
+        // Si tenemos una URL válida (de imagen o video), la insertamos en la base de datos
+        if (!empty($url_media)) {
+            $stmt_media = mysqli_prepare($conexion, "INSERT INTO ejercicios_media (idejercicio, tipo_media, url_media, orden) VALUES (?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt_media, "issi", $idejercicio_creado, $type, $url_media, $orden);
+            
+            if (!mysqli_stmt_execute($stmt_media)) {
+                // Si la inserción falla, borramos el archivo que acabamos de subir para no dejar basura.
+                if ($type === 'IMAGEN' && file_exists($target_path)) {
+                    unlink($target_path);
+                }
+                throw new Exception("Error al guardar el medio en la base de datos: " . mysqli_stmt_error($stmt_media));
+            }
+            mysqli_stmt_close($stmt_media);
+            $orden++;
+        }
+    }
+
+    // 6. CONFIRMAR TRANSACCIÓN
+    // Si todo ha ido bien, confirmamos todos los cambios en la base de datos.
+    mysqli_commit($conexion);
+    echo json_encode(['success' => true, 'message' => '¡Ejercicio guardado con éxito!']);
+
+} catch (Exception $e) {
+    // 7. REVERTIR TRANSACCIÓN EN CASO DE ERROR
+    // Si algo falló, revertimos todos los cambios para no dejar datos corruptos.
+    mysqli_rollback($conexion);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
+
+// 8. CERRAR CONEXIÓN
+mysqli_close($conexion);
 ?>
