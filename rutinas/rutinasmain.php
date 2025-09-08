@@ -93,10 +93,14 @@ if ($result_ejercicios) {
 													data-idrutina="<?php echo $row['idrutina']; ?>" title="Ver Detalles">
 													<i class="fas fa-eye"></i>
 												</button>
-												<button class="btn btn-warning btn-sm" title="Editar">
+												<button class="btn btn-warning btn-sm btn-editar" data-bs-toggle="modal"
+													data-bs-target="#modalAgregar"
+													data-idrutina="<?php echo $row['idrutina']; ?>" title="Editar">
+
 													<i class="fas fa-edit"></i>
 												</button>
-												<button class="btn btn-danger btn-sm" title="Eliminar">
+												<button class="btn btn-danger btn-sm btn-eliminar" data-idrutina="<?php echo $row['idrutina']; ?>" title="Eliminar">
+
 													<i class="fas fa-trash"></i>
 												</button>
 											</td>
@@ -120,12 +124,12 @@ if ($result_ejercicios) {
 		<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="modalAgregarLabel"><i class="fas fa-plus-circle me-2"></i>Constructor de
+					<h5 class="modal-title" id="modalRutinaLabel"><i class="fas fa-plus-circle me-2"></i>Constructor de
 						Rutinas</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
-					<form id="formCrearRutina">
+					<form id="formCrearRutina"><input type="hidden" name="idrutina" id="idrutina">
 						<!-- Routine main info -->
 						<div class="row mb-3">
 							<div class="col-md-6">
@@ -156,8 +160,8 @@ if ($result_ejercicios) {
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-					<button type="submit" form="formCrearRutina" class="btn btn-primary"><i
-							class="fas fa-save me-1"></i>Guardar Rutina</button>
+					<button type="submit" form="formCrearRutina" class="btn btn-primary" id="GuardarRutina">
+						<i class="fas fa-save me-1"></i>Guardar Rutina</button>
 				</div>
 			</div>
 		</div>
@@ -411,6 +415,120 @@ if ($result_ejercicios) {
 			}
 			// --- FIN: CÓDIGO PARA EL CONSTRUCTOR DE RUTINAS ---
 		});
+					// --- INICIO: CÓDIGO PARA ELIMINAR RUTINA ---
+			document.querySelector('.table-responsive').addEventListener('click', function(e) {
+				const deleteBtn = e.target.closest('.btn-eliminar');
+				if (deleteBtn) {
+					const idRutina = deleteBtn.dataset.idrutina;
+					if (confirm('¿Estás seguro de que deseas eliminar esta rutina? Esta acción no se puede deshacer.')) {
+						fetch('eliminar_rutina.php', {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/x-www-form-urlencoded',
+								},
+								body: `idrutina=${idRutina}`
+							})
+							.then(response => response.json())
+							.then(data => {
+								if (data.success) {
+									// Opcional: mostrar una notificación más elegante en lugar de un alert.
+									alert('Rutina eliminada correctamente.');
+									location.reload(); // Recargar la página para ver los cambios.
+								} else {
+									alert('Error al eliminar la rutina: ' + (data.message || 'Error desconocido.'));
+								}
+							})
+							.catch(error => {
+								console.error('Error en la solicitud fetch:', error);
+								alert('Hubo un error de conexión al intentar eliminar la rutina.');
+							});
+					}
+				}
+			});
+			// --- FIN: CÓDIGO PARA ELIMINAR RUTINA ---
+
+			
+
+		$(document).ready(function () {
+			// ... (aquí está todo tu código JS existente, como agregarDia, el submit del formulario, etc.)
+
+			// --- COMIENZA EL NUEVO CÓDIGO AQUÍ ---
+
+			var modalRutina = document.getElementById('modalAgregar');
+			modalRutina.addEventListener('show.bs.modal', function (event) {
+				// Botón que activó el modal
+				var button = event.relatedTarget;
+
+				// Extraer información de los atributos data-*
+				var idRutina = button.getAttribute('data-idrutina');
+
+				var modalTitle = modalRutina.querySelector('.modal-title');
+				var form = document.getElementById('formCrearRutina');
+				var btnGuardar = document.getElementById('btnGuardarRutina');
+				var diasContainer = document.getElementById('dias-container');
+
+				// Limpiar el formulario y el contenedor de días
+				form.reset();
+				diasContainer.innerHTML = '';
+				$('#idrutina').val(''); // Limpiar el id oculto
+
+				if (idRutina) {
+					// --- MODO EDICIÓN ---
+					modalTitle.textContent = 'Editar Rutina';
+					btnGuardar.textContent = 'Actualizar Rutina';
+					$('#idrutina').val(idRutina);
+
+					// Rellenar el formulario con una llamada AJAX
+					$.ajax({
+						url: 'get_rutina_detalles.php',
+						type: 'GET',
+						data: { id: idRutina },
+						dataType: 'json',
+						success: function (response) {
+							if (response.error) {
+								alert(response.error);
+								return;
+							}
+
+							// Rellenar nombre y descripción
+							$('#nombreRutina').val(response.nombre);
+							$('#descripcionRutina').val(response.descripcion);
+
+							// Rellenar los días y ejercicios
+							response.dias.forEach(function (dia, indexDia) {
+								agregarDia(); // Esta es tu función existente
+								var nuevoDia = $('.dia-container').last();
+								nuevoDia.find('input[name="dias[]"]').val(dia.nombre_dia);
+
+								dia.ejercicios.forEach(function (ejercicio) {
+									var btnAgregarEjercicio = nuevoDia.find('.btn-agregar-ejercicio');
+									agregarEjercicio(btnAgregarEjercicio); // Tu función existente
+									var nuevaFila = nuevoDia.find('tbody tr').last();
+									nuevaFila.find('input[name^="ejercicio_nombre"]').val(ejercicio.nombre_ejercicio);
+									nuevaFila.find('input[name^="series"]').val(ejercicio.series);
+									nuevaFila.find('input[name^="repeticiones"]').val(ejercicio.repeticiones);
+									nuevaFila.find('input[name^="peso"]').val(ejercicio.peso);
+									nuevaFila.find('textarea[name^="notas"]').val(ejercicio.notas);
+								});
+							});
+						},
+						error: function () {
+							alert('Error al cargar los detalles de la rutina.');
+						}
+					});
+
+				} else {
+					// --- MODO AGREGAR ---
+					modalTitle.textContent = 'Constructor de Rutinas';
+					btnGuardar.textContent = 'Guardar Rutina';
+					// Añadir el primer día por defecto
+					agregarDia();
+				}
+			});
+
+			// --- FIN DEL NUEVO CÓDIGO ---
+		});
+
 	</script>
 
 </body>

@@ -20,7 +20,7 @@
             </a>
         </li>
         <li>
-            <a href="/spartanproject/Ejercicios/ejerciciosmain.php" class="nav-link text-white">
+            <a href="/spartanproject/Ejercicios/ejercicios_controller.php" class="nav-link text-white">
                 <i class="fas fa-running fa-fw me-2"></i>Ejercicios
             </a>
         </li>
@@ -37,7 +37,7 @@
     </ul>
     <hr>
     <div>
-        <a href="#" class="d-flex align-items-center text-white text-decoration-none">
+        <a href="/spartanproject/logout.php" class="d-flex align-items-center text-white text-decoration-none">
             <i class="fas fa-sign-out-alt fa-fw me-2"></i>
             <strong>Cerrar Sesión</strong>
         </a>
