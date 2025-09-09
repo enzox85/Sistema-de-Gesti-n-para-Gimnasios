@@ -1,4 +1,38 @@
 <?php
+// Inserta un nuevo socio (usado por el controlador para AJAX)
+function insertarNuevoSocio(mysqli $conexion, array $datos): bool
+{
+	mysqli_begin_transaction($conexion);
+	try {
+		$sql_persona = "INSERT INTO personas (nombre, apellido, dni, email, telefono, direccion, fecha_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?)";
+		$stmt_persona = mysqli_prepare($conexion, $sql_persona);
+		if ($stmt_persona === false) {
+			throw new Exception('Error al preparar la consulta de persona: ' . mysqli_error($conexion));
+		}
+		mysqli_stmt_bind_param($stmt_persona, "sssssss", $datos['nombre'], $datos['apellido'], $datos['dni'], $datos['email'], $datos['telefono'], $datos['direccion'], $datos['fecha_nacimiento']);
+		mysqli_stmt_execute($stmt_persona);
+		$id_persona = mysqli_insert_id($conexion);
+		mysqli_stmt_close($stmt_persona);
+		if ($id_persona == 0) {
+			throw new Exception("La inserción en 'personas' no generó un ID.");
+		}
+		$sql_socio = "INSERT INTO socios (id_persona, fechalta, probfis, foto) VALUES (?, ?, ?, ?)";
+		$stmt_socio = mysqli_prepare($conexion, $sql_socio);
+		if ($stmt_socio === false) {
+			throw new Exception('Error al preparar la consulta de socio: ' . mysqli_error($conexion));
+		}
+		mysqli_stmt_bind_param($stmt_socio, "isss", $id_persona, $datos['fechalta'], $datos['probfis'], $datos['foto']);
+		mysqli_stmt_execute($stmt_socio);
+		mysqli_stmt_close($stmt_socio);
+		mysqli_commit($conexion);
+		return true;
+	} catch (Exception $e) {
+		mysqli_rollback($conexion);
+		error_log('Error en insertarNuevoSocio: ' . $e->getMessage());
+		return false;
+	}
+}
+
 function obtenerSocios(mysqli $conexion, string $busqueda = ''): array
 {
 	$socios = [];

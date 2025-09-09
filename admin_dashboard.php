@@ -9,7 +9,7 @@ if (!isset($_SESSION['id_usuario']) || $_SESSION['rol'] !== 'admin') {
 }
 
 // Incluimos el sidebar y la conexión
-require 'includes/sidebar.php';
+// require 'includes/sidebar.php';
 require 'conexion.php';
 $conexion = conectar();
 
@@ -24,8 +24,9 @@ $conexion = conectar();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/sidebar.css">
 </head>
-<body>
-    <div class="main-content">
+<body class="d-flex">
+    <?php include $_SERVER['DOCUMENT_ROOT'] . '/spartanproject/includes/sidebar.php'; ?>
+    <main class="flex-grow-1 p-4">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12">
@@ -34,7 +35,6 @@ $conexion = conectar();
                     <hr>
                 </div>
             </div>
-
             <div class="row">
                 <div class="col-md-4">
                     <div class="card text-white bg-primary mb-3">
@@ -67,11 +67,9 @@ $conexion = conectar();
                     </div>
                 </div>
             </div>
-            
             <!-- Aquí se podrían agregar más tarjetas o contenido -->
-
         </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/sidebar.js"></script>

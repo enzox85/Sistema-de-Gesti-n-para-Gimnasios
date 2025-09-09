@@ -34,6 +34,11 @@
                 <i class="fas fa-calendar-alt fa-fw me-2"></i>Planes
             </a>
         </li>
+        <li>
+            <a href="/spartanproject/Usuarios/usuarios_controller.php" class="nav-link text-white">
+                <i class="fas fa-user-shield fa-fw me-2"></i>Usuarios
+            </a>
+        </li>
     </ul>
     <hr>
     <div>

@@ -91,8 +91,12 @@ mysqli_close($conexion);
 												<?php echo $plan['activo'] ? '<span class="badge bg-success">Sí</span>' : '<span class="badge bg-danger">No</span>'; ?>
 											</td>
 											<td class="text-center">
-												<button class="btn btn-sm btn-warning me-1"><i class="fas fa-edit"></i></button>
-												<button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+												<button class="btn btn-sm btn-warning me-1 btn-editar"
+													data-idplan="<?php echo $plan['idplan']; ?>"><i
+														class="fas fa-edit"></i></button>
+												<button class="btn btn-sm btn-danger btn-eliminar"
+													data-idplan="<?php echo $plan['idplan']; ?>"><i
+														class="fas fa-trash"></i></button>
 											</td>
 										</tr>
 									<?php endforeach; else: ?>
@@ -167,14 +171,91 @@ mysqli_close($conexion);
 			</div>
 		</div>
 	</div>
+	<!-- Modal para Editar Plan -->
+	<div class="modal fade" id="modalEditarPlan" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-scrollable">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Editar Plan de Entrenamiento</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<form id="formEditarPlan">
+						<input type="hidden" id="edit_idplan" name="idplan">
+						<div class="mb-3">
+							<label for="edit_nombre_socio" class="form-label">Socio</label>
+							<input type="text" class="form-control" id="edit_nombre_socio" name="nombre_socio" readonly>
+						</div>
+						<div class="mb-3">
+							<label for="edit_tipo_plan" class="form-label">Objetivo Principal</label>
+							<select class="form-select" id="edit_tipo_plan" name="tipo_plan" required>
+								<option value="Aumento de Masa Muscular">Aumento de Masa Muscular</option>
+								<option value="Pérdida de Peso">Pérdida de Peso</option>
+								<option value="Mantenimiento">Mantenimiento</option>
+							</select>
+						</div>
+						<div class="row">
+							<div class="col-md-6 mb-3">
+								<label for="edit_peso_actual" class="form-label">Peso Actual (kg)</label>
+								<input type="number" step="0.1" class="form-control" id="edit_peso_actual"
+									name="peso_actual">
+							</div>
+							<div class="col-md-6 mb-3">
+								<label for="edit_altura" class="form-label">Altura (cm)</label>
+								<input type="number" class="form-control" id="edit_altura" name="altura">
+							</div>
+						</div>
+						<div class="mb-3">
+							<label for="edit_nivel_experiencia" class="form-label">Nivel de Experiencia</label>
+							<select class="form-select" id="edit_nivel_experiencia" name="nivel_experiencia">
+								<option value="Principiante">Principiante</option>
+								<option value="Intermedio">Intermedio</option>
+								<option value="Avanzado">Avanzado</option>
+							</select>
+						</div>
+						<div class="row">
+							<div class="col-md-6 mb-3">
+								<label for="edit_fecha_inicio" class="form-label">Fecha de Inicio</label>
+								<input type="date" class="form-control" id="edit_fecha_inicio" name="fecha_inicio"
+									required>
+							</div>
+							<div class="col-md-6 mb-3">
+								<label for="edit_fecha_fin" class="form-label">Fecha de Fin (Opcional)</label>
+								<input type="date" class="form-control" id="edit_fecha_fin" name="fecha_fin">
+							</div>
+						</div>
+						<div class="mb-3">
+							<label for="edit_disponibilidad" class="form-label">Disponibilidad Semanal</label>
+							<input type="text" class="form-control" id="edit_disponibilidad" name="disponibilidad"
+								placeholder="Ej: 3 días/semana">
+						</div>
+						<div class="mb-3">
+							<label for="edit_observaciones" class="form-label">Observaciones</label>
+							<textarea class="form-control" id="edit_observaciones" name="observaciones"
+								rows="3"></textarea>
+						</div>
+						<div id="editarPlanError" class="alert alert-danger" style="display:none;"></div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+					<button type="submit" form="formEditarPlan" class="btn btn-primary">Guardar Cambios</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
-			const form = document.getElementById('formAsignarPlan');
-			form.addEventListener('submit', function (e) {
+			// --- MANEJO DEL MODAL DE ASIGNAR PLAN ---
+			const modalAsignarElement = document.getElementById('modalAsignarPlan');
+			const modalAsignar = new bootstrap.Modal(modalAsignarElement);
+			const formAsignar = document.getElementById('formAsignarPlan');
+
+			formAsignar.addEventListener('submit', function (e) {
 				e.preventDefault();
-				const formData = new FormData(form);
+				const formData = new FormData(formAsignar);
 				const errorDiv = document.getElementById('asignarPlanError');
 				errorDiv.style.display = 'none';
 
@@ -182,28 +263,113 @@ mysqli_close($conexion);
 					method: 'POST',
 					body: formData
 				})
-				.then(response => {
-					if (!response.ok) {
-						// Si la respuesta no es OK, lee el texto del error y lánzalo
-						return response.text().then(text => {
-							throw new Error('Respuesta del servidor no fue OK: ' + text);
-						});
-					}
-					return response.json(); // Si es OK, procesa como JSON
-				})
-				.then(data => {
-					if (data.status === 'success') {
-						alert(data.message);
-						window.location.reload();
-					} else {
-						errorDiv.textContent = data.message || 'Ocurrió un error desconocido.';
+					.then(response => response.json())
+					.then(data => {
+						if (data.status === 'success') {
+							modalAsignar.hide();
+							alert(data.message);
+							window.location.reload();
+						} else {
+							errorDiv.textContent = data.message || 'Ocurrió un error desconocido.';
+							errorDiv.style.display = 'block';
+						}
+					})
+					.catch(error => {
+						console.log(error);
+						errorDiv.textContent = 'Error de comunicación con el servidor.';
 						errorDiv.style.display = 'block';
-					}
+					});
+			});
+
+			// --- MANEJO DEL MODAL DE EDICIÓN ---
+			const modalEditarElement = document.getElementById('modalEditarPlan');
+			const modalEditar = new bootstrap.Modal(modalEditarElement);
+			const formEditar = document.getElementById('formEditarPlan');
+
+			document.querySelectorAll('.btn-editar').forEach(boton => {
+				boton.addEventListener('click', function () {
+					const idPlan = this.dataset.idplan; // Corregido a idplan
+
+					fetch(`controlador_planes.php?accion=obtener_detalles&idplan=${idPlan}`) // Corregido a idplan
+						.then(response => response.json())
+						.then(data => {
+							if (data.status === 'success') {
+								const plan = data.data;
+								// Llenar el formulario de edición
+								document.getElementById('edit_idplan').value = plan.idplan; // Corregido a idplan
+								document.getElementById('edit_nombre_socio').value = `${plan.nombre_socio} ${plan.apellido_socio}`.trim();
+								document.getElementById('edit_tipo_plan').value = plan.tipo_plan;
+								document.getElementById('edit_peso_actual').value = plan.peso_actual;
+								document.getElementById('edit_altura').value = plan.altura;
+								document.getElementById('edit_nivel_experiencia').value = plan.nivel_experiencia;
+								document.getElementById('edit_fecha_inicio').value = plan.fecha_inicio;
+								document.getElementById('edit_fecha_fin').value = plan.fecha_fin;
+								document.getElementById('edit_disponibilidad').value = plan.disponibilidad;
+								document.getElementById('edit_observaciones').value = plan.observaciones;
+
+								modalEditar.show();
+							} else {
+								alert('Error: ' + data.message);
+							}
+						}).catch(error => {
+							console.error('Error en fetch para obtener detalles:', error);
+							alert('No se pudieron cargar los datos del plan.');
+						});
+				});
+			});
+
+			formEditar.addEventListener('submit', function (e) {
+				e.preventDefault();
+				const formData = new FormData(formEditar);
+				const errorDiv = document.getElementById('editarPlanError');
+				errorDiv.style.display = 'none';
+
+				fetch('controlador_planes.php?accion=actualizar', {
+					method: 'POST',
+					body: formData
 				})
-				.catch(error => {
-					// Este catch ahora recibirá el error detallado
-					errorDiv.textContent = error.message;
-					errorDiv.style.display = 'block';
+					.then(response => response.json())
+					.then(data => {
+						if (data.status === 'success') {
+							modalEditar.hide();
+							alert(data.message);
+							window.location.reload();
+						} else {
+							errorDiv.textContent = data.message || 'Ocurrió un error desconocido.';
+							errorDiv.style.display = 'block';
+						}
+					})
+					.catch(error => {
+						errorDiv.textContent = 'Error de comunicación con el servidor.';
+						errorDiv.style.display = 'block';
+					});
+			});
+
+			// --- MANEJO DE ELIMINACIÓN ---
+			document.querySelectorAll('.btn-eliminar').forEach(boton => {
+				boton.addEventListener('click', function () {
+					const idPlan = this.dataset.idplan; // Corregido a idplan
+
+					if (confirm('¿Estás seguro de que deseas eliminar este plan? Esta acción no se puede deshacer.')) {
+						fetch('controlador_planes.php?accion=eliminar', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ idplan: idPlan }) // Corregido a idplan
+						})
+							.then(response => response.json())
+							.then(data => {
+								if (data.status === 'success') {
+									alert(data.message);
+									window.location.reload();
+								} else {
+									alert('Error: ' + data.message);
+								}
+							})
+							.catch(error => {
+								console.error('Error en la petición fetch:', error);
+								alert('Ocurrió un error de comunicación con el servidor.');
+							});
+					}
 				});
 			});
 		});

@@ -48,9 +48,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Redirigir según el rol
         if ($usuario['rol'] == 'admin') {
-            header('Location: admin_dashboard.php');
+            header('Location: /spartanproject/admin_dashboard.php');
         } else {
-            header('Location: socio_portal.php');
+            header('Location: /spartanproject/socio_portal.php');
         }
         exit();
 
